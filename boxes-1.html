@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <title>Babylon Template</title>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.js"></script>
+
+    </head>
+
+   <body>
+
+	<canvas id="renderCanvas"></canvas>
+
+	<script>
+        const canvas = document.getElementById("renderCanvas"); // Get the canvas element
+        const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
+
+        var box_cnt = 0;    
+
+        function fc(n) {
+            //
+                const colors = []
+                colors[0] = new BABYLON.Color3(0.33, 0.93, 0.05);
+                colors[1] = new BABYLON.Color3(0.97, 0.81, 0.13);
+                colors[2] = new BABYLON.Color3(0.89, 0.21, 0.51);
+                colors[3] = new BABYLON.Color3(0.23, 0.13, 0.95);
+                const color_array = []
+                for (ix=0; ix<6; ix++) {color_array[ix] = colors[n]}
+                return color_array
+            }
+
+        function create_box(status, pos, sc) {
+            //
+            box_cnt += 1;
+            name = `box_${box_cnt}`;
+            //console.log(name)
+            box = BABYLON.MeshBuilder.CreateBox(name, {faceColors: fc(status)}, sc);
+            
+            var mat = new BABYLON.StandardMaterial("mat", sc); mat.alpha = 1.0;
+            box.material = mat;
+            //box.material.wireframe = true;
+            box.enableEdgesRendering();
+            box.edgesColor = new BABYLON.Color4(1, 1, 1);
+            box.edgesWidth = 0.8;   
+            box.position = new BABYLON.Vector3(pos[0], pos[1], pos[2]);
+
+            return box
+        }
+
+        function set_action(mesh, sc) {
+                //
+                mesh.actionManager = new BABYLON.ActionManager(sc);
+                mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+                    BABYLON.ActionManager.OnPickUpTrigger, function () {
+                        alert(`${mesh.name} clicked`);
+                }));
+            }
+
+        function create_row(direction, line, start_pos, levels, places, sc) {
+            //
+            const box_row = [];
+            var cnt = 0
+            for (j=0; j<levels; j++) {
+                for (i=0; i<places; i++) {
+                    if (direction == 'x') {
+                        var x = line; var y = j; var z = i + start_pos;
+                    }
+                    else if (direction == 'z') {
+                        var x = i + start_pos; var y = j; var z = line;
+                    }
+                    stt = Math.floor(Math.random() * 4);
+                    box_row[cnt] = create_box( status=stt, pos=[x, y+0.5, z], sc=sc );
+                    cnt += 1;
+                }
+            }
+
+            // set action for boxes
+            for (i=0; i<box_row.length; i++) {
+                set_action(box_row[i], sc);
+            }
+
+            return box_row;
+        }
+
+        // parameters for camera view
+        const alpha_front = -Math.PI / 2
+        const alpha_rear = Math.PI / 2
+        const alpha_right = 0
+        const alpha_left = Math.PI
+
+        const beta_horizont = Math.PI / 2.5
+        const beta_top = 0
+
+        function camera_view(alpha, beta) {
+            // create camera with setted params
+            c = new BABYLON.ArcRotateCamera("camera", alpha, beta, 30, new BABYLON.Vector3(0, 0, 0));
+            return c
+        }
+
+
+        var btn_view = function(txtr, camera_btn, view_type, btn_pos_left, btn_pos_top, c_alpha, c_beta) {
+                // create button for camera view
+                var btn = BABYLON.GUI.Button.CreateSimpleButton(`btn_${view_type}_view`, `${view_type} view`);
+                btn.width = "150px"
+                btn.height = "40px";
+                btn.color = "white";
+                btn.cornerRadius = 20;
+                btn.background = "green";
+                btn.left = btn_pos_left;
+                btn.top = btn_pos_top;
+                btn.onPointerUpObservable.add(function() {
+                    camera_btn.alpha = c_alpha;
+                    camera_btn.beta = c_beta;
+                    camera_btn.radius = 30;
+                });
+                txtr.addControl(btn);
+                
+                return btn;
+            }
+
+
+        const createScene = function () {
+            const scene = new BABYLON.Scene(engine);
+
+            const camera = camera_view(alpha=alpha_right, beta=beta_top)
+            camera.attachControl(canvas, true);
+
+            const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0));
+
+            const ground = BABYLON.MeshBuilder.CreateGround("ground", 
+                {
+                    width:21, 
+                    height:25, 
+                    subdivisionsX: 21, subdivisionsY: 25
+                }
+                );
+            const groundMat = new BABYLON.StandardMaterial("groundMat");
+            groundMat.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+            ground.material = groundMat; //Place the material property of the ground
+            ground.material.wireframe = true;
+
+            const box_rows = []
+            //storage #0
+            box_rows[0] = create_row(direction='x', line=-4, start_pos=-10, levels=7, places=20, sc=scene);
+            box_rows[1] = create_row(direction='x', line=-5, start_pos=-10, levels=7, places=20, sc=scene);
+            box_rows[2] = create_row(direction='x', line=-8, start_pos=-10, levels=5, places=15, sc=scene);
+
+            box_rows[3] = create_row(direction='z', line=-1, start_pos=-1, levels=3, places=10, sc=scene);
+            box_rows[4] = create_row(direction='z', line=0, start_pos=-1, levels=3, places=10, sc=scene);
+            box_rows[5] = create_row(direction='z', line=3, start_pos=-1, levels=7, places=10, sc=scene);
+            box_rows[6] = create_row(direction='z', line=6, start_pos=-1, levels=7, places=10, sc=scene);
+            box_rows[7] = create_row(direction='z', line=7, start_pos=-1, levels=7, places=10, sc=scene);
+
+            box_rows[8] = create_row(direction='z', line=-3, start_pos=-1, levels=2, places=10, sc=scene);
+
+
+            // GUI
+            var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+            // create buttons for camera views
+            var btn_top_view = btn_view(advancedTexture, camera, 'top', '-44%', '-45%', alpha_right, beta_top);
+            var btn_front_view = btn_view(advancedTexture, camera, 'front', '-44%', '-35%', alpha_front, beta_horizont);
+            var btn_rear_view = btn_view(advancedTexture, camera, 'rear', '-44%', '-25%', alpha_rear, beta_horizont);
+            var btn_right_view = btn_view(advancedTexture, camera, 'right', '-44%', '-15%', alpha_right, beta_horizont);
+            var btn_left_view = btn_view(advancedTexture, camera, 'left', '-44%', '-5%', alpha_left, beta_horizont);
+            
+            return scene;
+        };
+
+
+        const scene = createScene(); //Call the createScene function
+        // Register a render loop to repeatedly render the scene
+        engine.runRenderLoop(function () {
+                scene.render();
+        });
+        // Watch for browser/canvas resize events
+        window.addEventListener("resize", function () {
+                engine.resize();
+        });
+
+
+	</script>
+
+   </body>
+
+</html>
