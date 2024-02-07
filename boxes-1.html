@@ -51,9 +51,7 @@
             //
             box_cnt += 1;
             name = `box_${box_cnt}`;
-            //console.log(name)
             box = BABYLON.MeshBuilder.CreateBox(name, {faceColors: fc(status)}, sc);
-            
             var mat = new BABYLON.StandardMaterial("mat", sc); mat.alpha = 1.0;
             box.material = mat;
             //box.material.wireframe = true;
@@ -69,7 +67,7 @@
                 //
                 mesh.actionManager = new BABYLON.ActionManager(sc);
                 mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
-                    BABYLON.ActionManager.OnPickUpTrigger, function () {
+                    BABYLON.ActionManager.OnDoublePickTrigger, function () {
                         alert(`${mesh.name} clicked`);
                 }));
             }
@@ -115,25 +113,39 @@
             return c
         }
 
-
         var btn_view = function(txtr, camera_btn, view_type, btn_pos_left, btn_pos_top, c_alpha, c_beta) {
                 // create button for camera view
                 var btn = BABYLON.GUI.Button.CreateSimpleButton(`btn_${view_type}_view`, `${view_type} view`);
-                btn.width = "150px"
-                btn.height = "40px";
+                btn.width = "100px"
+                btn.height = "25px";
                 btn.color = "white";
-                btn.cornerRadius = 20;
-                btn.background = "green";
+                btn.cornerRadius = 15;
+                btn.background = "teal";
                 btn.left = btn_pos_left;
                 btn.top = btn_pos_top;
-                btn.onPointerUpObservable.add(function() {
-                    camera_btn.alpha = c_alpha;
-                    camera_btn.beta = c_beta;
-                    camera_btn.radius = 30;
-                });
+                // btn.onPointerUpObservable.add(function() {
+                //     camera_btn.alpha = c_alpha;
+                //     camera_btn.beta = c_beta;
+                //     camera_btn.radius = 30;
+                //     btn.background = 'LimeGreen';
+                // });
                 txtr.addControl(btn);
                 
                 return btn;
+            }
+
+        function btn_camera_colors(view_type, btn_array, camera_btn, c_alpha, c_beta) {
+                //
+                view_types_array = ['top', 'front', 'rear', 'right', 'left']
+                btn_array[view_type].onPointerUpObservable.add(function() {
+                    camera_btn.alpha = c_alpha;
+                    camera_btn.beta = c_beta;
+                    camera_btn.radius = 30;
+                    for (const elem of view_types_array) {
+                        btn_array[elem].background = 'teal';
+                    }
+                    btn_array[view_type].background = 'LimeGreen';
+                });   
             }
 
 
@@ -175,12 +187,18 @@
             // GUI
             var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
             // create buttons for camera views
-            var btn_top_view = btn_view(advancedTexture, camera, 'top', '-44%', '-45%', alpha_right, beta_top);
-            var btn_front_view = btn_view(advancedTexture, camera, 'front', '-44%', '-35%', alpha_front, beta_horizont);
-            var btn_rear_view = btn_view(advancedTexture, camera, 'rear', '-44%', '-25%', alpha_rear, beta_horizont);
-            var btn_right_view = btn_view(advancedTexture, camera, 'right', '-44%', '-15%', alpha_right, beta_horizont);
-            var btn_left_view = btn_view(advancedTexture, camera, 'left', '-44%', '-5%', alpha_left, beta_horizont);
-            
+            const btn_camera = []
+            btn_camera['top'] = btn_view(advancedTexture, camera, 'top', '-46%', '-46%', alpha_right, beta_top);
+            btn_camera['front'] = btn_view(advancedTexture, camera, 'front', '-46%', '-40%', alpha_front, beta_horizont);
+            btn_camera['rear'] = btn_view(advancedTexture, camera, 'rear', '-46%', '-34%', alpha_rear, beta_horizont);
+            btn_camera['right'] = btn_view(advancedTexture, camera, 'right', '-46%', '-28%', alpha_right, beta_horizont);
+            btn_camera['left'] = btn_view(advancedTexture, camera, 'left', '-46%', '-22%', alpha_left, beta_horizont);
+            btn_camera_colors('top', btn_camera, camera, alpha_right, beta_top);
+            btn_camera_colors('front', btn_camera, camera, alpha_front, beta_horizont);
+            btn_camera_colors('rear', btn_camera, camera, alpha_rear, beta_horizont);
+            btn_camera_colors('right', btn_camera, camera, alpha_right, beta_horizont);
+            btn_camera_colors('left', btn_camera, camera, alpha_left, beta_horizont);
+
             return scene;
         };
 
