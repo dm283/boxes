@@ -20,12 +20,20 @@
             }
         </style>
 
+        <link rel="stylesheet" href="styles.css">
         <script src="https://cdn.babylonjs.com/babylon.js"></script>
         <script src="https://cdn.babylonjs.com/gui/babylon.gui.js"></script>
 
     </head>
 
    <body>
+
+    <div id="myModal" class="modal">
+        <!-- <div class="modal-content">
+            <span class="close" onclick="close_modal()">&times;</span>
+            <div>MODALL</div>
+          </div> -->
+    </div>
 
 	<canvas id="renderCanvas"></canvas>
 
@@ -67,8 +75,14 @@
                 //
                 mesh.actionManager = new BABYLON.ActionManager(sc);
                 mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
-                    BABYLON.ActionManager.OnDoublePickTrigger, function () {
-                        alert(`${mesh.name} clicked`);
+                    BABYLON.ActionManager.OnLeftPickTrigger, function () {
+                        //alert(`${mesh.name} clicked`);
+                        cell_click(mesh);
+                }));
+                mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+                    BABYLON.ActionManager.OnRightPickTrigger, function () {
+                        //alert(`${mesh.name} 22222 clicked`);
+                        mesh.dispose();                
                 }));
             }
 
@@ -113,7 +127,7 @@
             return c
         }
 
-        var btn_view = function(txtr, camera_btn, view_type, btn_pos_left, btn_pos_top, c_alpha, c_beta) {
+        var btn_view = function(txtr, camera_btn, view_type, btn_pos_left, btn_pos_top) {
                 // create button for camera view
                 var btn = BABYLON.GUI.Button.CreateSimpleButton(`btn_${view_type}_view`, `${view_type} view`);
                 btn.width = "100px"
@@ -123,12 +137,6 @@
                 btn.background = "teal";
                 btn.left = btn_pos_left;
                 btn.top = btn_pos_top;
-                // btn.onPointerUpObservable.add(function() {
-                //     camera_btn.alpha = c_alpha;
-                //     camera_btn.beta = c_beta;
-                //     camera_btn.radius = 30;
-                //     btn.background = 'LimeGreen';
-                // });
                 txtr.addControl(btn);
                 
                 return btn;
@@ -152,7 +160,7 @@
         const createScene = function () {
             const scene = new BABYLON.Scene(engine);
 
-            const camera = camera_view(alpha=alpha_right, beta=beta_top)
+            const camera = camera_view(alpha_front, beta_horizont)
             camera.attachControl(canvas, true);
 
             const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0));
@@ -174,13 +182,11 @@
             box_rows[0] = create_row(direction='x', line=-4, start_pos=-10, levels=7, places=20, sc=scene);
             box_rows[1] = create_row(direction='x', line=-5, start_pos=-10, levels=7, places=20, sc=scene);
             box_rows[2] = create_row(direction='x', line=-8, start_pos=-10, levels=5, places=15, sc=scene);
-
             box_rows[3] = create_row(direction='z', line=-1, start_pos=-1, levels=3, places=10, sc=scene);
             box_rows[4] = create_row(direction='z', line=0, start_pos=-1, levels=3, places=10, sc=scene);
             box_rows[5] = create_row(direction='z', line=3, start_pos=-1, levels=7, places=10, sc=scene);
             box_rows[6] = create_row(direction='z', line=6, start_pos=-1, levels=7, places=10, sc=scene);
             box_rows[7] = create_row(direction='z', line=7, start_pos=-1, levels=7, places=10, sc=scene);
-
             box_rows[8] = create_row(direction='z', line=-3, start_pos=-1, levels=2, places=10, sc=scene);
 
 
@@ -188,11 +194,11 @@
             var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
             // create buttons for camera views
             const btn_camera = []
-            btn_camera['top'] = btn_view(advancedTexture, camera, 'top', '-46%', '-46%', alpha_right, beta_top);
-            btn_camera['front'] = btn_view(advancedTexture, camera, 'front', '-46%', '-40%', alpha_front, beta_horizont);
-            btn_camera['rear'] = btn_view(advancedTexture, camera, 'rear', '-46%', '-34%', alpha_rear, beta_horizont);
-            btn_camera['right'] = btn_view(advancedTexture, camera, 'right', '-46%', '-28%', alpha_right, beta_horizont);
-            btn_camera['left'] = btn_view(advancedTexture, camera, 'left', '-46%', '-22%', alpha_left, beta_horizont);
+            btn_camera['top'] = btn_view(advancedTexture, camera, 'top', '-46%', '-46%');
+            btn_camera['front'] = btn_view(advancedTexture, camera, 'front', '-46%', '-40%');
+            btn_camera['rear'] = btn_view(advancedTexture, camera, 'rear', '-46%', '-34%');
+            btn_camera['right'] = btn_view(advancedTexture, camera, 'right', '-46%', '-28%');
+            btn_camera['left'] = btn_view(advancedTexture, camera, 'left', '-46%', '-22%');
             btn_camera_colors('top', btn_camera, camera, alpha_right, beta_top);
             btn_camera_colors('front', btn_camera, camera, alpha_front, beta_horizont);
             btn_camera_colors('rear', btn_camera, camera, alpha_rear, beta_horizont);
@@ -212,6 +218,65 @@
         window.addEventListener("resize", function () {
                 engine.resize();
         });
+
+        
+
+        function render_modal(mesh) {
+            // Modal content
+            // is_selected = []
+            // is_selected[cell_matrix[row][level][place]['status']] = 'selected'
+
+            modal_content = `<div class="modal-content">
+                <span class="close" onclick="close_modal()">&times;</span>
+
+                <form id="cell_data_form" name="cell_data_form" action="" method="POST">
+                  <label for="order_input">БОКС №</label>
+                  <input type="text" id="order_input" name="order" value="${mesh.name}"><br><br>                    
+                  <label for="order_input">ЗАКАЗ</label>
+                  <input type="text" id="order_input" name="order" value="2455-13"><br><br>
+                  <label for="status_input">АРТИКУЛ</label>
+                  <input type="text" id="order_input" name="order" value="МР1213/14"><br><br>
+                  <label for="status_input">КОЛИЧЕСТВО</label>
+                  <input type="text" id="order_input" name="order" value="45 шт."><br><br>
+                  <br><br>
+                  <input id="cell_data_form_submit" type="submit" value="OK">
+                </form>
+
+            </div>`
+            document.getElementById("myModal").innerHTML = modal_content
+            //document.getElementById('cell_data_form_submit').focus();
+
+            //
+            document.getElementById("cell_data_form").addEventListener("submit", function (e) {
+                e.preventDefault();
+
+                // var formData = new FormData(e.target);
+                // // output as an object
+                // //console.log(Object.fromEntries(formData));
+
+                // // ...or iterate through the name-value pairs
+                // for (var pair of formData.entries()) {
+                // //console.log(pair[0] + ": " + pair[1]);
+                // cell_matrix[row][level][place][pair[0]] = pair[1]
+                // }
+                //console.log(cell_matrix[row][level][place])
+                close_modal();
+                });
+    }
+
+        // Get the modal
+        var modal = document.getElementById("myModal");
+
+        function cell_click(mesh) {
+          //
+          modal.style.display = "block";
+          render_modal(mesh);
+        }
+
+        function close_modal() {
+          modal.style.display = "none";
+          //render_table()
+        }
 
 
 	</script>
