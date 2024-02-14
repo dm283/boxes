@@ -23,17 +23,13 @@
         <link rel="stylesheet" href="styles.css">
         <script src="https://cdn.babylonjs.com/babylon.js"></script>
         <script src="https://cdn.babylonjs.com/gui/babylon.gui.js"></script>
+        <script src="row_d.js"></script>
 
     </head>
 
    <body>
 
-    <div id="myModal" class="modal">
-        <!-- <div class="modal-content">
-            <span class="close" onclick="close_modal()">&times;</span>
-            <div>MODALL</div>
-          </div> -->
-    </div>
+    <div id="modal_2d_row" class="modal"></div>
 
 	<canvas id="renderCanvas"></canvas>
 
@@ -41,7 +37,20 @@
         const canvas = document.getElementById("renderCanvas"); // Get the canvas element
         const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
 
-        var box_cnt = 0;    
+        var box_cnt = 0;
+        const cell_matrix = [];
+        const boxes = [];
+
+        // parameters for camera view
+        const alpha_front = -Math.PI / 2
+        const alpha_rear = Math.PI / 2
+        const alpha_right = 0
+        const alpha_left = Math.PI
+
+        const beta_horizont = Math.PI / 2.5
+        const beta_top = 0
+
+
 
         function fc(n) {
             //
@@ -52,13 +61,15 @@
                 colors[3] = new BABYLON.Color3(0.23, 0.13, 0.95);
                 const color_array = []
                 for (ix=0; ix<6; ix++) {color_array[ix] = colors[n]}
+
                 return color_array
             }
 
-        function create_box(status, pos, sc) {
+
+        function create_box(row_number, status, pos, sc) {
             //
             box_cnt += 1;
-            name = `box_${box_cnt}`;
+            name = box_cnt;
             box = BABYLON.MeshBuilder.CreateBox(name, {faceColors: fc(status)}, sc);
             var mat = new BABYLON.StandardMaterial("mat", sc); mat.alpha = 1.0;
             box.material = mat;
@@ -71,13 +82,25 @@
             return box
         }
 
-        function set_action(mesh, sc) {
+
+        function box_click(mesh, storage_row) {
+          //
+        //   modal.style.display = "block";
+        //   render_modal(mesh);
+        //   console.log(mesh.name, boxes[mesh.name], 
+        //     'cell name=', cell_matrix[boxes[mesh.name]['row']][boxes[mesh.name]['level']][boxes[mesh.name]['place']]['box_name']
+        //     )
+          display_2d_row(mesh, storage_row);
+        }
+
+
+        function set_action(mesh, sc, storage_row) {
                 //
                 mesh.actionManager = new BABYLON.ActionManager(sc);
                 mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
                     BABYLON.ActionManager.OnLeftPickTrigger, function () {
                         //alert(`${mesh.name} clicked`);
-                        cell_click(mesh);
+                        box_click(mesh, storage_row);
                 }));
                 mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
                     BABYLON.ActionManager.OnRightPickTrigger, function () {
@@ -86,11 +109,15 @@
                 }));
             }
 
-        function create_row(direction, line, start_pos, levels, places, sc) {
+
+        function create_row(row_number, direction, line, start_pos, levels, places, sc) {
             //
             const box_row = [];
             var cnt = 0
+            cell_matrix[row_number] = []
+
             for (j=0; j<levels; j++) {
+                cell_matrix[row_number][j] = []
                 for (i=0; i<places; i++) {
                     if (direction == 'x') {
                         var x = line; var y = j; var z = i + start_pos;
@@ -99,33 +126,37 @@
                         var x = i + start_pos; var y = j; var z = line;
                     }
                     stt = Math.floor(Math.random() * 4);
-                    box_row[cnt] = create_box( status=stt, pos=[x, y+0.5, z], sc=sc );
+                    box_row[cnt] = create_box( row_number, status=stt, pos=[x, y+0.5, z], sc=sc );
+                    cell_matrix[row_number][j][i] = [];
+                    var box_name = box_row[cnt].name;
+                    cell_matrix[row_number][j][i]['box_name'] = box_name;
+                    cell_matrix[row_number][j][i]['order'] = '12c-3';
+                    cell_matrix[row_number][j][i]['articul'] = '123РТ/12';
+                    cell_matrix[row_number][j][i]['quantity'] = 48;
+                    cell_matrix[row_number][j][i]['status'] = stt;
+                    boxes[box_name] = []
+                    boxes[box_name]['row'] = row_number;
+                    boxes[box_name]['level'] = j;
+                    boxes[box_name]['place'] = i;
                     cnt += 1;
                 }
             }
 
             // set action for boxes
             for (i=0; i<box_row.length; i++) {
-                set_action(box_row[i], sc);
+                set_action(box_row[i], sc, cell_matrix[row_number]);
             }
 
             return box_row;
         }
 
-        // parameters for camera view
-        const alpha_front = -Math.PI / 2
-        const alpha_rear = Math.PI / 2
-        const alpha_right = 0
-        const alpha_left = Math.PI
-
-        const beta_horizont = Math.PI / 2.5
-        const beta_top = 0
 
         function camera_view(alpha, beta) {
             // create camera with setted params
             c = new BABYLON.ArcRotateCamera("camera", alpha, beta, 30, new BABYLON.Vector3(0, 0, 0));
             return c
         }
+
 
         var btn_view = function(txtr, camera_btn, view_type, btn_pos_left, btn_pos_top) {
                 // create button for camera view
@@ -142,6 +173,7 @@
                 return btn;
             }
 
+
         function btn_camera_colors(view_type, btn_array, camera_btn, c_alpha, c_beta) {
                 //
                 view_types_array = ['top', 'front', 'rear', 'right', 'left']
@@ -157,7 +189,9 @@
             }
 
 
+// ***************  CREATE SCENE FUNCTION  ******************
         const createScene = function () {
+            //
             const scene = new BABYLON.Scene(engine);
 
             const camera = camera_view(alpha_front, beta_horizont)
@@ -179,16 +213,15 @@
 
             const box_rows = []
             //storage #0
-            box_rows[0] = create_row(direction='x', line=-4, start_pos=-10, levels=7, places=20, sc=scene);
-            box_rows[1] = create_row(direction='x', line=-5, start_pos=-10, levels=7, places=20, sc=scene);
-            box_rows[2] = create_row(direction='x', line=-8, start_pos=-10, levels=5, places=15, sc=scene);
-            box_rows[3] = create_row(direction='z', line=-1, start_pos=-1, levels=3, places=10, sc=scene);
-            box_rows[4] = create_row(direction='z', line=0, start_pos=-1, levels=3, places=10, sc=scene);
-            box_rows[5] = create_row(direction='z', line=3, start_pos=-1, levels=7, places=10, sc=scene);
-            box_rows[6] = create_row(direction='z', line=6, start_pos=-1, levels=7, places=10, sc=scene);
-            box_rows[7] = create_row(direction='z', line=7, start_pos=-1, levels=7, places=10, sc=scene);
-            box_rows[8] = create_row(direction='z', line=-3, start_pos=-1, levels=2, places=10, sc=scene);
-
+            box_rows[0] = create_row(row_number=0, direction='x', line=-4, start_pos=-10, levels=7, places=20, sc=scene);
+            box_rows[1] = create_row(row_number=1, direction='x', line=-5, start_pos=-10, levels=7, places=20, sc=scene);
+            box_rows[2] = create_row(row_number=2, direction='x', line=-8, start_pos=-10, levels=5, places=15, sc=scene);
+            box_rows[3] = create_row(row_number=3, direction='z', line=-1, start_pos=-1, levels=3, places=10, sc=scene);
+            box_rows[4] = create_row(row_number=4, direction='z', line=0, start_pos=-1, levels=3, places=10, sc=scene);
+            box_rows[5] = create_row(row_number=5, direction='z', line=3, start_pos=-1, levels=7, places=10, sc=scene);
+            box_rows[6] = create_row(row_number=6, direction='z', line=6, start_pos=-1, levels=7, places=10, sc=scene);
+            box_rows[7] = create_row(row_number=7, direction='z', line=7, start_pos=-1, levels=7, places=10, sc=scene);
+            box_rows[8] = create_row(row_number=8, direction='z', line=-3, start_pos=-1, levels=2, places=10, sc=scene);
 
             // GUI
             var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
@@ -221,62 +254,57 @@
 
         
 
-        function render_modal(mesh) {
-            // Modal content
-            // is_selected = []
-            // is_selected[cell_matrix[row][level][place]['status']] = 'selected'
+        // function render_modal(mesh) {
+        //     // Modal content
+        //     // is_selected = []
+        //     // is_selected[cell_matrix[row][level][place]['status']] = 'selected'
 
-            modal_content = `<div class="modal-content">
-                <span class="close" onclick="close_modal()">&times;</span>
+        //     modal_content = `<div class="modal-content">
+        //         <span class="close" onclick="close_modal()">&times;</span>
 
-                <form id="cell_data_form" name="cell_data_form" action="" method="POST">
-                  <label for="order_input">БОКС №</label>
-                  <input type="text" id="order_input" name="order" value="${mesh.name}"><br><br>                    
-                  <label for="order_input">ЗАКАЗ</label>
-                  <input type="text" id="order_input" name="order" value="2455-13"><br><br>
-                  <label for="status_input">АРТИКУЛ</label>
-                  <input type="text" id="order_input" name="order" value="МР1213/14"><br><br>
-                  <label for="status_input">КОЛИЧЕСТВО</label>
-                  <input type="text" id="order_input" name="order" value="45 шт."><br><br>
-                  <br><br>
-                  <input id="cell_data_form_submit" type="submit" value="OK">
-                </form>
+        //         <form id="cell_data_form" name="cell_data_form" action="" method="POST">
+        //           <label for="order_input">БОКС №</label>
+        //           <input type="text" id="order_input" name="order" value="${mesh.name}"><br><br>                    
+        //           <label for="order_input">ЗАКАЗ</label>
+        //           <input type="text" id="order_input" name="order" value="2455-13"><br><br>
+        //           <label for="status_input">АРТИКУЛ</label>
+        //           <input type="text" id="order_input" name="order" value="МР1213/14"><br><br>
+        //           <label for="status_input">КОЛИЧЕСТВО</label>
+        //           <input type="text" id="order_input" name="order" value="45 шт."><br><br>
+        //           <br><br>
+        //           <input id="cell_data_form_submit" type="submit" value="OK">
+        //         </form>
 
-            </div>`
-            document.getElementById("myModal").innerHTML = modal_content
-            //document.getElementById('cell_data_form_submit').focus();
+        //     </div>`
+        //     document.getElementById("myModal").innerHTML = modal_content
+        //     //document.getElementById('cell_data_form_submit').focus();
 
-            //
-            document.getElementById("cell_data_form").addEventListener("submit", function (e) {
-                e.preventDefault();
+        //     //
+        //     document.getElementById("cell_data_form").addEventListener("submit", function (e) {
+        //         e.preventDefault();
 
-                // var formData = new FormData(e.target);
-                // // output as an object
-                // //console.log(Object.fromEntries(formData));
+        //         // var formData = new FormData(e.target);
+        //         // // output as an object
+        //         // //console.log(Object.fromEntries(formData));
 
-                // // ...or iterate through the name-value pairs
-                // for (var pair of formData.entries()) {
-                // //console.log(pair[0] + ": " + pair[1]);
-                // cell_matrix[row][level][place][pair[0]] = pair[1]
-                // }
-                //console.log(cell_matrix[row][level][place])
-                close_modal();
-                });
-    }
+        //         // // ...or iterate through the name-value pairs
+        //         // for (var pair of formData.entries()) {
+        //         // //console.log(pair[0] + ": " + pair[1]);
+        //         // cell_matrix[row][level][place][pair[0]] = pair[1]
+        //         // }
+        //         //console.log(cell_matrix[row][level][place])
+        //         close_modal();
+        //         });
+        //}
 
         // Get the modal
-        var modal = document.getElementById("myModal");
+        // var modal = document.getElementById("myModal");
 
-        function cell_click(mesh) {
-          //
-          modal.style.display = "block";
-          render_modal(mesh);
-        }
 
-        function close_modal() {
-          modal.style.display = "none";
-          //render_table()
-        }
+        // function close_modal() {
+        //   modal.style.display = "none";
+        //   //render_table()
+        // }
 
 
 	</script>
