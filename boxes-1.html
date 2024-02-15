@@ -110,7 +110,7 @@
             }
 
 
-        function create_row(row_number, direction, line, start_pos, levels, places, sc) {
+        function create_row(row_number, direction, line, start_pos, levels, places, sc, textr) {
             //
             const box_row = [];
             var cnt = 0
@@ -146,6 +146,20 @@
             for (i=0; i<box_row.length; i++) {
                 set_action(box_row[i], sc, cell_matrix[row_number]);
             }
+
+            var tab = BABYLON.GUI.Button.CreateSimpleButton(`tab_row_${row_number}`, `row-${row_number}`);
+            tab.width = "100px"
+            tab.height = "25px";
+            tab.color = "white";
+            tab.cornerRadius = 0;
+            tab.background = 'SlateBlue';
+            tab.leftInPixels = -705 + 105 * row_number;
+            tab.top = '47%';
+            console.log(tab.left, tab.top)
+            textr.addControl(tab);
+            tab.onPointerUpObservable.add(function() {
+                box_click(1, cell_matrix[row_number]);
+            });   
 
             return box_row;
         }
@@ -211,20 +225,21 @@
             ground.material = groundMat; //Place the material property of the ground
             ground.material.wireframe = true;
 
-            const box_rows = []
-            //storage #0
-            box_rows[0] = create_row(row_number=0, direction='x', line=-4, start_pos=-10, levels=7, places=20, sc=scene);
-            box_rows[1] = create_row(row_number=1, direction='x', line=-5, start_pos=-10, levels=7, places=20, sc=scene);
-            box_rows[2] = create_row(row_number=2, direction='x', line=-8, start_pos=-10, levels=5, places=15, sc=scene);
-            box_rows[3] = create_row(row_number=3, direction='z', line=-1, start_pos=-1, levels=3, places=10, sc=scene);
-            box_rows[4] = create_row(row_number=4, direction='z', line=0, start_pos=-1, levels=3, places=10, sc=scene);
-            box_rows[5] = create_row(row_number=5, direction='z', line=3, start_pos=-1, levels=7, places=10, sc=scene);
-            box_rows[6] = create_row(row_number=6, direction='z', line=6, start_pos=-1, levels=7, places=10, sc=scene);
-            box_rows[7] = create_row(row_number=7, direction='z', line=7, start_pos=-1, levels=7, places=10, sc=scene);
-            box_rows[8] = create_row(row_number=8, direction='z', line=-3, start_pos=-1, levels=2, places=10, sc=scene);
-
             // GUI
             var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+            const box_rows = []
+            //storage #0
+            box_rows[0] = create_row(row_number=0, direction='x', line=-4, start_pos=-10, levels=7, places=20, sc=scene, textr=advancedTexture);
+            box_rows[1] = create_row(row_number=1, direction='x', line=-5, start_pos=-10, levels=7, places=20, sc=scene, textr=advancedTexture);
+            box_rows[2] = create_row(row_number=2, direction='x', line=-8, start_pos=-10, levels=5, places=15, sc=scene, textr=advancedTexture);
+            box_rows[3] = create_row(row_number=3, direction='z', line=-1, start_pos=-1, levels=3, places=10, sc=scene, textr=advancedTexture);
+            box_rows[4] = create_row(row_number=4, direction='z', line=0, start_pos=-1, levels=3, places=10, sc=scene, textr=advancedTexture);
+            box_rows[5] = create_row(row_number=5, direction='z', line=3, start_pos=-1, levels=7, places=10, sc=scene, textr=advancedTexture);
+            box_rows[6] = create_row(row_number=6, direction='z', line=6, start_pos=-1, levels=7, places=10, sc=scene, textr=advancedTexture);
+            box_rows[7] = create_row(row_number=7, direction='z', line=7, start_pos=-1, levels=7, places=10, sc=scene, textr=advancedTexture);
+            box_rows[8] = create_row(row_number=8, direction='z', line=-3, start_pos=-1, levels=2, places=10, sc=scene, textr=advancedTexture);
+
             // create buttons for camera views
             const btn_camera = []
             btn_camera['top'] = btn_view(advancedTexture, camera, 'top', '-46%', '-46%');
@@ -237,6 +252,8 @@
             btn_camera_colors('rear', btn_camera, camera, alpha_rear, beta_horizont);
             btn_camera_colors('right', btn_camera, camera, alpha_right, beta_horizont);
             btn_camera_colors('left', btn_camera, camera, alpha_left, beta_horizont);
+
+
 
             return scene;
         };
